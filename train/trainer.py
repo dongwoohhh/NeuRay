@@ -31,7 +31,7 @@ class Trainer:
         "train_log_step": 20,
         "val_interval": 10000,
         "save_interval": 500,
-        "worker_num": 8,
+        "worker_num": 20,
     }
     def _init_dataset(self):
         self.train_set=name2dataset[self.cfg['train_dataset_type']](self.cfg['train_dataset_cfg'], True)
@@ -86,7 +86,8 @@ class Trainer:
     def __init__(self,cfg):
         self.cfg={**self.default_cfg,**cfg}
         self.model_name=cfg['name']
-        self.model_dir=os.path.join('data/model',cfg['name'])
+        self.model_dir=os.path.join(cfg['basedir'], 'out', cfg['name'])
+        #self.model_dir=os.path.join('data/model',cfg['name'])
         if not os.path.exists(self.model_dir): os.mkdir(self.model_dir)
         self.pth_fn=os.path.join(self.model_dir,'model.pth')
         self.best_pth_fn=os.path.join(self.model_dir,'model_best.pth')

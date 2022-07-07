@@ -109,7 +109,9 @@ class GeneralRendererDataset(Dataset):
         self.is_train = is_train
         if is_train:
             self.num=999999
+
             self.type2scene_names,self.database_types,self.database_weights = {}, [], []
+            """
             if self.cfg['resolution_type']=='hr':
                 type2scene_names={'dtu_train':dtu_train_scene_names,'space':space_scene_names,
                                   'real_iconic':real_iconic_scene_names_4,
@@ -120,7 +122,14 @@ class GeneralRendererDataset(Dataset):
                                   'real_estate':real_estate_scene_names, 'gso':gso_scene_names_400}
             else:
                 raise NotImplementedError
-
+            """
+            if self.cfg['resolution_type']=='hr':
+                type2scene_names={'dtu':dtu_train_scene_names,'real_iconic_noface':real_iconic_noface_train_scene_names,
+                                  'ibrnet_collected_1':ibrnet_collected_1_train_scene_names,
+                                  'ibrnet_collected_2':ibrnet_collected_2_train_scene_names}
+            else:
+                raise NotImplementedError
+            
             for database_type in self.cfg['train_database_types']:
                 self.type2scene_names[database_type] = type2scene_names[database_type]
                 self.database_types.append(database_type)
@@ -133,7 +142,7 @@ class GeneralRendererDataset(Dataset):
             self.database = parse_database_name(self.cfg['val_database_name'])
             self.ref_ids, self.que_ids = get_database_split(self.database,self.cfg['val_database_split_type'])
             self.num=len(self.que_ids)
-
+        
     def get_database_ref_que_ids(self, index):
         if self.is_train:
             database_type = np.random.choice(self.database_types,1,False,p=self.database_weights)[0]
@@ -183,7 +192,9 @@ class GeneralRendererDataset(Dataset):
                 pool_ratio = np.random.randint(1, 3)
                 dist_idx = dist_idx[:min(ref_num * pool_ratio, 12)]
             else:
-                raise NotImplementedError
+                pool_ratio = np.random.randint(1, 4)
+                dist_idx = dist_idx[:min(ref_num * pool_ratio, 20)]
+                #raise NotImplementedError
 
         return dist_idx
 
@@ -313,7 +324,7 @@ class GeneralRendererDataset(Dataset):
             is_aligned = not database.database_name.startswith('space')
             ref_imgs_info = build_imgs_info(database, ref_ids, -1, is_aligned)
         que_imgs_info = build_imgs_info(database, [que_id], has_depth=self.is_train)
-
+    
         if self.is_train:
             # data augmentation
             depth_range_all = np.concatenate([ref_imgs_info['depth_range'],que_imgs_info['depth_range']],0)
@@ -372,7 +383,7 @@ class GeneralRendererDataset(Dataset):
 
         ref_imgs_info = imgs_info_to_torch(ref_imgs_info)
         que_imgs_info = imgs_info_to_torch(que_imgs_info)
-
+        
         outputs = {'ref_imgs_info': ref_imgs_info, 'que_imgs_info': que_imgs_info, 'scene_name': database.database_name}
         if self.cfg['use_src_imgs']: outputs['src_imgs_info'] = imgs_info_to_torch(src_imgs_info)
         return outputs

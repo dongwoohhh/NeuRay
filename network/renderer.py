@@ -18,7 +18,7 @@ from network.render_ops import *
 from utils.base_utils import to_cuda, load_cfg, color_map_backward, get_coords_mask
 from utils.draw_utils import concat_images_list
 from utils.imgs_info import build_imgs_info, imgs_info_to_torch, imgs_info_slice
-from utils.view_select import compute_nearest_camera_indices, select_working_views, select_working_views_by_overlap
+from utils.view_select import compute_nearest_camera_indices, select_working_views#, select_working_views_by_overlap
 
 
 class NeuralRayBaseRenderer(nn.Module):

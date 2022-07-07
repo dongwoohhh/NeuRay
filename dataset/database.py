@@ -16,7 +16,7 @@ from utils.base_utils import downsample_gaussian_blur, color_map_backward, resiz
     save_pickle, transform_points_Rt, pose_inverse
 from PIL import Image
 
-from utils.llff_utils import load_llff_data
+from utils.llff_utils import load_llff_data, load_llff_data_depth
 from utils.real_estate_utils import parse_pose_file, unnormalize_intrinsics
 from utils.space_dataset_utils import ReadScene
 
@@ -994,6 +994,12 @@ def parse_database_name(database_name:str)->BaseDatabase:
         'llff_colmap': LLFFColmapDatabase,
         'blended_mvs': BlendedMVSDatabase,
         'example': ExampleDatabase,
+
+        # Custom database.
+        'dtu': CustomColmapDatabase,
+        'ibrnet_collected_1': CustomColmapDatabase,
+        'ibrnet_collected_2': CustomColmapDatabase,
+        'real_iconic_noface': CustomColmapDatabase,
     }
     database_type = database_name.split('/')[0]
     if database_type in name2database:
@@ -1015,6 +1021,12 @@ def get_database_split(database: BaseDatabase, split_type='val'):
         elif database_name.startswith('dtu_test'):
             val_ids = database.get_img_ids()[3:-3:8]
             train_ids = [img_id for img_id in database.get_img_ids(check_depth_exist=depth_valid) if img_id not in val_ids]
+        elif database_name.startswith('dtu/'):
+            val_ids = [x for x in database.get_img_ids() if int(x) in [32, 24, 23, 44]]
+            train_ids = [img_id for img_id in database.get_img_ids(check_depth_exist=depth_valid) if img_id not in val_ids]
+        elif database_name.startswith('ibrnet_collected'):
+            val_ids = database.get_img_ids()[::8]
+            train_ids = [img_id for img_id in database.get_img_ids(check_depth_exist=depth_valid) if img_id not in val_ids]
         else:
             raise NotImplementedError
     elif split_type.startswith('test'):
@@ -1034,3 +1046,91 @@ def get_database_split(database: BaseDatabase, split_type='val'):
     else:
         raise NotImplementedError
     return train_ids, val_ids
+
+
+
+class CustomColmapDatabase(BaseDatabase):
+    def __init__(self, database_name):
+        super(CustomColmapDatabase, self).__init__(database_name)
+    
+        dataset_name, scene_name = database_name.split('/')
+        self.name=dataset_name
+        self.scene_path= os.path.join('data',database_name)
+
+        # Image rescaling factor.
+        if self.name == 'dtu':
+            factor=1.0
+        elif self.name in ['ibrnet_collected_1']:
+            factor=1.125
+            #factor=1.0
+        elif self.name in ['nerf_llff_data', 'llff_overfit', 'real_iconic_noface', 'ibrnet_collected_2', 'ibrnet_collected_more']:
+            factor=4.5
+        else:
+            factor=1.0
+        self.factor = factor
+
+        self.images, poses, self.range_dict, _, i_test, self.image_files, self.sc = load_llff_data_depth(self.scene_path, load_imgs=True, factor=factor)
+
+        h, w, focal = poses[0, :3, -1]
+        self.K = np.asarray([[focal,0.0,w/2],[0.0,focal,h/2],[0.0,0.0,1.0]],dtype=np.float32)
+        poses = poses[:, :3, :4]
+        self.poses=[]
+        for k in range(len(poses)):
+            pose = poses[k]
+            R = pose[:3, :3].T
+            t = R @ -pose[:3, 3:]
+
+            R = np.diag(np.asarray([1, -1, -1])) @ R
+            t = np.diag(np.asarray([1, -1, -1])) @ t
+            self.poses.append(np.concatenate([R,t],1))
+        #import pdb; pdb.set_trace()
+        """
+        intrinsics, c2w_mats = batch_parse_llff_poses(poses)
+        self.K = intrinsics[:, :3, :3] # 3x3
+        self.poses = c2w_mats[:, :3, :4]
+        """
+        # output dict.
+        self.img_ids = [str(k) for k in range(len(self.images))]
+        self.test_img_ids = [str(i_test)]
+        self.train_img_ids=[k for k in self.img_ids if k not in self.test_img_ids]
+        self.range_dict={str(k):np.asarray(self.range_dict[k],np.float32) for k in range(len(self.range_dict))}
+        self.depth_img_ids = self.img_ids
+
+    def get_image(self, img_id):
+        return self.images[int(img_id)]
+
+    def get_K(self, img_id):
+        return self.K.copy()
+
+    def get_pose(self, img_id):
+        return self.poses[int(img_id)].copy()
+
+    def get_img_ids(self,check_depth_exist=False):
+        if check_depth_exist:
+            return self.depth_img_ids
+        return self.img_ids
+    
+    def get_bbox(self, img_id):
+        raise NotImplementedError
+    
+    def get_depth(self, img_id):
+        image_file=self.image_files[int(img_id)].split('/')[-1]
+        fn = os.path.join(self.scene_path, 'dense/stereo/depth_maps', image_file+'.geometric.bin')
+
+        depth = self.sc*read_array(fn)
+
+        #Resize depth to image size.
+        _, height, width, _ = self.images.shape
+        depth = cv2.resize(depth, (width, height), interpolation=cv2.INTER_NEAREST)
+
+        near, far = self.get_depth_range(img_id)
+        depth = np.clip(depth, a_min=1e-5,a_max=far)
+
+        return depth
+
+    def get_mask(self, img_id):
+        h, w = self.get_image(img_id).shape[:2]
+        return np.ones([h,w],dtype=np.bool)
+
+    def get_depth_range(self,img_id):
+        return self.range_dict[img_id].copy()

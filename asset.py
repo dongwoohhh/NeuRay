@@ -50,3 +50,66 @@ llff_names = ['fern','flower','fortress','horns','leaves','orchids','room','trex
 LLFF_ROOT = f'data/llff_colmap'
 
 NERF_SYN_ROOT = f'data/nerf_synthetic'
+
+
+
+
+# Comparison dataset.
+dataset_dir = 'data'
+
+dtu_dir = os.path.join(dataset_dir,'dtu')
+if os.path.exists(dtu_dir):
+    file_list_train = os.path.join(dtu_dir, 'new_train.lst')
+    file_list_test = os.path.join(dtu_dir, 'new_val.lst')
+    
+    with open(file_list_train, "r") as f:
+        train_scenes = [x.strip() for x in f.readlines()]
+    
+    with open(file_list_test, "r") as f:
+        test_scenes = [x.strip() for x in f.readlines()]
+
+    dtu_train_scene_names = [os.path.join('dtu', x) for x in train_scenes]
+    dtu_test_scene_names = [os.path.join('dtu', x) for x in test_scenes]
+
+
+real_iconic_noface_dir = os.path.join(dataset_dir,'real_iconic_noface')
+if os.path.exists(dtu_dir):
+    file_list_train = os.path.join(real_iconic_noface_dir, 'new_train.lst')
+    file_list_test = os.path.join(real_iconic_noface_dir, 'new_val.lst')
+    
+    with open(file_list_train, "r") as f:
+        train_scenes = [x.strip() for x in f.readlines()]
+    
+    with open(file_list_test, "r") as f:
+        test_scenes = [x.strip() for x in f.readlines()]
+
+    real_iconic_noface_train_scene_names = [os.path.join('real_iconic_noface', x) for x in train_scenes]
+    real_iconic_noface_test_scene_names = [os.path.join('real_iconic_noface', x) for x in test_scenes]
+
+ibrnet_collected_1_dir = os.path.join(dataset_dir,'ibrnet_collected_1')
+if os.path.exists(dtu_dir):
+    file_list_train = os.path.join(ibrnet_collected_1_dir, 'new_train.lst')
+    file_list_test = os.path.join(ibrnet_collected_1_dir, 'new_val.lst')
+    
+    with open(file_list_train, "r") as f:
+        train_scenes = [x.strip() for x in f.readlines()]
+    
+    with open(file_list_test, "r") as f:
+        test_scenes = [x.strip() for x in f.readlines()]
+
+    ibrnet_collected_1_train_scene_names = [os.path.join('ibrnet_collected_1', x) for x in train_scenes]
+    ibrnet_collected_1_test_scene_names = [os.path.join('ibrnet_collected_1', x) for x in test_scenes]
+
+ibrnet_collected_2_dir = os.path.join(dataset_dir,'ibrnet_collected_2')
+if os.path.exists(dtu_dir):
+    file_list_train = os.path.join(ibrnet_collected_2_dir, 'new_train.lst')
+    file_list_test = os.path.join(ibrnet_collected_2_dir, 'new_val.lst')
+    
+    with open(file_list_train, "r") as f:
+        train_scenes = [x.strip() for x in f.readlines()]
+    
+    with open(file_list_test, "r") as f:
+        test_scenes = [x.strip() for x in f.readlines()]
+
+    ibrnet_collected_2_train_scene_names = [os.path.join('ibrnet_collected_2', x) for x in train_scenes]
+    ibrnet_collected_2_test_scene_names = [os.path.join('ibrnet_collected_2', x) for x in test_scenes]
